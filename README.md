@@ -1,97 +1,120 @@
-# JobClerk Auto-Refresher & Monitor (Manifest V3)
+# JobClerk Auto-Refresher & Monitor
 
-A high-performance Chrome & Brave extension engineered specifically for monitoring newly posted jobs on [JobClerk](https://www.jobclerk.com) in real time without false alarms.
+[![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue.svg)](https://developer.chrome.com/docs/extensions/mv3/intro/)
+[![Target Browser](https://img.shields.io/badge/Browser-Brave%20%7C%20Chrome-orange.svg)](https://brave.com/)
+[![Pure Vanilla JS](https://img.shields.io/badge/JavaScript-Vanilla%20(No%20Bundler)-yellow.svg)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
----
-
-## Project Structure & Architecture
-
-```
-jobclerk-auto-refresher/
-├── manifest.json              # Extension configuration, permissions & host matches
-├── .gitignore                 # Git ignore rules (.DS_Store, logs)
-├── README.md                  # Detailed documentation and usage guide
-├── src/
-│   ├── background/
-│   │   └── background.js      # Manifest V3 service worker managing offscreen audio
-│   ├── content/
-│   │   ├── content.js         # DOM watcher, boundary-scan engine & draggable UI
-│   │   └── styles.css         # Modern dark-slate floating control panel styling
-│   └── audio/
-│       ├── offscreen.html     # Hidden document for audio playback
-│       └── offscreen.js       # Web Audio API continuous chime synthesizer
-└── tests/
-    └── test-job-board.html    # Standalone mock job board for offline testing
-```
-
-### Why Are These Files Separated?
-In Chrome and Brave **Manifest V3**, the browser enforces strict process isolation and security boundaries:
-
-1. **`src/content/content.js` (Webpage DOM Context)**:
-   - Must run inside `jobclerk.com` to inspect the job cards and render the on-screen control panel.
-   - It cannot play background audio unattended without browser autoplay blocking.
-2. **`src/background/background.js` (Service Worker)**:
-   - Runs in the background independently of any tab.
-   - Chrome service workers have **no DOM access** and **no audio capability**. They exist to manage extension lifecycle events.
-3. **`src/audio/offscreen.html` & `offscreen.js` (Audio Sandbox)**:
-   - Google's official MV3 standard for audio playback (`chrome.offscreen`).
-   - Runs under the extension's own origin (`chrome-extension://`), making it **100% exempt from web page autoplay restrictions**.
-   - **Why separate HTML and JS?** Chrome Extension Content Security Policy (CSP) strictly bans inline `<script>` tags inside HTML. Scripts must always be loaded via `<script src="offscreen.js"></script>`.
+A high-performance, lightweight Chromium extension designed specifically to monitor newly posted jobs on **[JobClerk](https://www.jobclerk.com)** in real time with continuous audio chime alerts and zero false alarms.
 
 ---
 
-## How to Install in Brave / Chrome
+## Key Highlights
 
-1. Open Brave (or Chrome) and go to:
-   ```
-   brave://extensions
-   ```
-2. Enable **Developer mode** using the toggle switch in the top-right corner.
+- **Tailored for JobClerk**: Matches strictly to `https://*.jobclerk.com/*` so it never runs on or interferes with unrelated websites.
+- **False-Alarm Proof**: Uses a top-down boundary scan algorithm. When an old job closes and the 2nd job shifts to the top, it recognizes it in cache and suppresses false alerts.
+- **Multi-Job Batch Detection**: Catches multiple jobs arriving in the same refresh interval and records them all in one batch.
+- **Unattended Audio Alerts**: Built with the Manifest V3 Offscreen Audio API (`chrome.offscreen`). Chimes trigger reliably in the background without getting blocked by Chromium's autoplay policy.
+- **Screen-Wide Click-to-Stop**: A single click anywhere on the webpage instantly silences the alarm and pauses the refresh countdown.
+- **Movable & Persistent HUD**: Drag and drop the control box anywhere on your screen. The panel stays pinned to your custom coordinates across all 10-second reloads.
+- **Full Title Legibility**: Long medical and clinical job titles wrap naturally and are displayed completely without truncation.
+- **Zero Bloat**: Plain Vanilla JavaScript and CSS. Zero npm packages, zero external build tools, zero external audio files.
+
+---
+
+## Installation & Setup
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/manisandar/jobclerk-auto-refresher.git
+```
+
+### 2. Load into Brave or Chrome
+1. Open your browser and navigate to the extensions page:
+   - **Brave**: `brave://extensions`
+   - **Chrome**: `chrome://extensions`
+2. Enable **Developer mode** via the toggle switch in the top-right corner.
 3. Click the **Load unpacked** button in the top-left corner.
-4. Select this extension directory:
-   ```
-   Auto Refresh Chrome Extension
-   ```
-5. The extension is now loaded and ready.
+4. Select the cloned `jobclerk-auto-refresher` directory.
+5. The extension is now loaded and active.
 
 ---
 
-## Step-by-Step Usage Guide for JobClerk
+## How to Use with JobClerk
 
-### 1. Open JobClerk with Your Desired Search Filters
-Navigate to your filtered JobClerk page, for example:
+### 1. Open JobClerk with Your Preferred Search Filters
+Navigate to your target JobClerk search URL, for example:
 ```
 https://www.jobclerk.com/jobs?market=uk&sort=newest&grade=Junior&profession=Medical+doctor
 ```
-> **Tip:** Ensure your search results are sorted by **Newest** so that newly posted positions appear at the top of the list.
+> **Recommendation:** Ensure your results are sorted by **Newest** so that newly posted listings appear at the top.
 
-### 2. Initial Baseline (Cold Start)
-- When the page loads, the floating **Job Monitor** control box will appear in the top-right corner.
-- It automatically seeds all currently visible jobs on the page into history (`chrome.storage.local`) as the baseline.
-- **Zero false alarm:** Existing jobs on initial load will never trigger an alert.
+### 2. Automatic Baseline Initialization
+- When you first open JobClerk, the **Job Monitor** control box will appear on the screen.
+- It automatically seeds all currently visible jobs into local extension storage (`chrome.storage.local`) as the baseline.
+- Existing jobs on initial load will **never** trigger an alarm.
 
-### 3. Automatic 10-Second Countdown & Refresh
-- The countdown badge will tick down from your set interval (`10s... 9s... 8s...`).
-- When the timer reaches `0s`, the page automatically reloads and checks for new arrivals.
-- You can change the refresh interval anytime via the number input or preset chips (`5s`, `10s`, `20s`, `30s`).
+### 3. Live Countdown & Auto-Refresh
+- The on-screen badge displays a real-time countdown (`10s... 9s... 8s...`).
+- When the countdown finishes, the page automatically reloads and checks for new arrivals.
+- You can change the interval anytime using the number input or quick preset chips (`5s`, `10s`, `20s`, `30s`).
 
-### 4. Smart Job Detection Logic
-- **Single New Job:** If 1 new job is posted, it detects the signature, saves it, pauses the timer, and rings the continuous chime.
-- **Multiple New Jobs (Batch):** If 2 or more jobs appear at once, it performs a **top-down boundary scan**, recording all new jobs in one batch and announcing `X New Jobs Detected`.
-- **Closed Job Shift:** When an older job closes and the 2nd job moves up to #1, the boundary scan recognizes it in history and triggers **zero false alarms**.
+### 4. When a New Job Arrives
+- A continuous, pleasant two-tone melodic chime starts looping (every ~1.2s).
+- The refresh timer automatically **halts** so the page will not refresh away while you review or apply for the job.
+- The control box displays the number of new jobs and the full title of the latest arrival.
 
-### 5. Repositioning (Movable Panel)
-- Click and drag the **header bar** (or grip icon) of the floating control panel to move it anywhere on your screen.
-- Your position is automatically saved in `chrome.storage.local`. When the page reloads every 10 seconds, the box **remains exactly where you moved it**.
+### 5. Silencing & Resuming
+- **To Silence & Pause**: Click **anywhere on the webpage**. The audio immediately stops and the countdown pauses.
+- **To Resume**: When you are ready to continue monitoring, click **`Resume`** in the control box.
 
-### 6. Silencing the Alarm & Pausing
-- When an alert triggers, simply **click anywhere on the webpage**:
-  - The chime stops instantly.
-  - The auto-refresh timer pauses so the page won't reload while you inspect the job.
-- When you are ready to resume monitoring, click **`Resume`** in the control box.
+---
 
-### 7. Minimizing & Closing
-- **Minimize (`-`):** Collapses the panel into a compact pill.
-- **Close (`✕`):** Dismisses the panel completely, leaving a discreet floating radar icon in the corner.
-- **Keyboard Shortcut:** Press **`Option + J`** (Mac) or **`Alt + J`** (Windows) to toggle the control box open/closed at any time.
-- **Reset Baseline (`Reset`):** Clears previous history and resets the baseline to the currently visible jobs.
+## Controls & Keyboard Shortcuts
+
+| Control / Action | Description |
+| :--- | :--- |
+| **Header Drag** | Click and drag the panel header to reposition it anywhere on your screen. Coordinates persist across reloads. |
+| **Click Anywhere** | Silences the audio alarm and pauses the auto-refresh timer immediately. |
+| **Preset Chips (`5s`, `10s`, `20s`, `30s`)** | Instantly switches the refresh interval. Persists in storage. |
+| **`Stop` / `Resume`** | Toggles monitoring on or off manually. |
+| **`Reset`** | Re-seeds the baseline with the currently visible jobs on the page. |
+| **`_` (Minimize)** | Collapses the panel into an unobtrusive mini-pill. |
+| **`✕` (Close)** | Dismisses the panel and pauses monitoring, leaving a discreet corner launcher button. |
+| **`Option + J`** *(Mac)* / **`Alt + J`** *(Win)* | Keyboard shortcut to toggle the control panel open or closed. |
+
+---
+
+## Project Structure
+
+```
+jobclerk-auto-refresher/
+├── manifest.json              # Manifest V3 extension configuration & permissions
+├── .gitignore                 # Git ignore rules
+├── README.md                  # Project documentation
+├── src/
+│   ├── background/
+│   │   └── background.js      # Background service worker managing offscreen audio
+│   ├── content/
+│   │   ├── content.js         # DOM detection, boundary scan & draggable UI
+│   │   └── styles.css         # Modern dark-slate floating panel styling
+│   └── audio/
+│       ├── offscreen.html     # Offscreen audio host document
+│       └── offscreen.js       # Web Audio API continuous chime synthesizer
+└── tests/
+    └── test-job-board.html    # Mock job board for local offline testing
+```
+
+---
+
+## Technical Details
+
+- **Target DOM Selector**: `h2.text-secondary, .flex.items-start.justify-between h2, h2.font-semibold`
+- **History Capping**: Retains the 50 most recent job signatures using FIFO eviction to ensure zero memory bloat.
+- **Audio Engine**: Synthesized via browser Web Audio API oscillator nodes (587.33 Hz $\rightarrow$ 880.00 Hz) inside an offscreen document sandbox.
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
