@@ -56,3 +56,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.runtime.sendMessage({ type: 'OFFSCREEN_STOP_CHIME' }).catch(() => {});
   }
 });
+
+// Toolbar action icon click handler
+chrome.action.onClicked.addListener(async (tab) => {
+  if (tab && tab.url && tab.url.includes('jobclerk.com')) {
+    chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_UI' }).catch(() => {});
+  } else {
+    chrome.tabs.create({ url: 'https://www.jobclerk.com/jobs?sort=newest' });
+  }
+});

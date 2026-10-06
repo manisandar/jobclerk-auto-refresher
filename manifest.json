@@ -1,12 +1,25 @@
 {
   "manifest_version": 3,
   "name": "JobClerk Auto-Refresher & Monitor",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Smart auto-refresher and top-job detector with reliable background audio alerts for JobClerk.",
   "permissions": [
     "storage",
     "offscreen"
   ],
+  "icons": {
+    "16": "assets/icons/icon-16.png",
+    "48": "assets/icons/icon-48.png",
+    "128": "assets/icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "JobClerk Auto-Refresher",
+    "default_icon": {
+      "16": "assets/icons/icon-16.png",
+      "48": "assets/icons/icon-48.png",
+      "128": "assets/icons/icon-128.png"
+    }
+  },
   "background": {
     "service_worker": "src/background/background.js"
   },

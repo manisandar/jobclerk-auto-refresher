@@ -480,6 +480,17 @@
     }
   });
 
+  // Listen for toolbar icon clicks from background worker
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message.type === 'TOGGLE_UI') {
+      if (uiBox) {
+        closeExtensionBox();
+      } else {
+        reopenExtensionBox();
+      }
+    }
+  });
+
   function toggleMinimize() {
     isMinimized = !isMinimized;
     uiBox.classList.toggle('minimized', isMinimized);
