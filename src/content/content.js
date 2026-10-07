@@ -66,26 +66,50 @@
      Storage Helpers (Async/Await)
      ========================================================================== */
 
+  function isExtensionValid() {
+    return typeof chrome !== 'undefined' && chrome.runtime && !!chrome.runtime.id;
+  }
+
   async function getStorageData() {
     return new Promise((resolve) => {
-      chrome.storage.local.get(
-        [
-          STORAGE_KEYS.SEEN_JOBS,
-          STORAGE_KEYS.INTERVAL,
-          STORAGE_KEYS.IS_MONITORING,
-          STORAGE_KEYS.IS_MINIMIZED,
-          STORAGE_KEYS.IS_CLOSED,
-          STORAGE_KEYS.UI_POSITION,
-          STORAGE_KEYS.RINGTONE
-        ],
-        (result) => resolve(result || {})
-      );
+      if (!isExtensionValid()) return resolve({});
+      try {
+        chrome.storage.local.get(
+          [
+            STORAGE_KEYS.SEEN_JOBS,
+            STORAGE_KEYS.INTERVAL,
+            STORAGE_KEYS.IS_MONITORING,
+            STORAGE_KEYS.IS_MINIMIZED,
+            STORAGE_KEYS.IS_CLOSED,
+            STORAGE_KEYS.UI_POSITION,
+            STORAGE_KEYS.RINGTONE
+          ],
+          (result) => {
+            if (!isExtensionValid() || chrome.runtime.lastError) {
+              return resolve({});
+            }
+            resolve(result || {});
+          }
+        );
+      } catch (e) {
+        resolve({});
+      }
     });
   }
 
   async function setStorageData(data) {
     return new Promise((resolve) => {
-      chrome.storage.local.set(data, resolve);
+      if (!isExtensionValid()) return resolve();
+      try {
+        chrome.storage.local.set(data, () => {
+          if (!isExtensionValid() || chrome.runtime.lastError) {
+            // Context invalidated during reload
+          }
+          resolve();
+        });
+      } catch (e) {
+        resolve();
+      }
     });
   }
 
@@ -159,6 +183,10 @@
     updateStatusDisplay();
 
     countdownTimerId = setInterval(() => {
+      if (!isExtensionValid()) {
+        stopCountdown();
+        return;
+      }
       remainingSeconds--;
       if (remainingSeconds <= 0) {
         stopCountdown();
