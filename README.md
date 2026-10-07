@@ -77,6 +77,7 @@ https://www.jobclerk.com/jobs?market=uk&sort=newest&grade=Junior&profession=Medi
 | **Header Drag** | Click and drag the panel header to reposition it anywhere on your screen. Coordinates persist across reloads. |
 | **Click Anywhere** | Silences the audio alarm and pauses the auto-refresh timer immediately. |
 | **Preset Chips (`5s`, `10s`, `20s`, `30s`)** | Instantly switches the refresh interval. Persists in storage. |
+| **Ringtone Chips (`Chime`, `Pulse`, `Bell`, `Marimba`)** | Choose from 4 distinct synthesized alert tones. Plays a preview on click and lights up the active tone. |
 | **`Stop` / `Resume`** | Toggles monitoring on or off manually. |
 | **`Reset`** | Re-seeds the baseline with the currently visible jobs on the page. |
 | **`_` (Minimize)** | Collapses the panel into an unobtrusive mini-pill. |

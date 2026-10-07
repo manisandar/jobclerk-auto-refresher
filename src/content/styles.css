@@ -1,6 +1,6 @@
 /* ==========================================================================
    Job Hunter Monitor - Humanized Modern Control Panel
-   Refined Dark Surface, Zero Emojis, Fully Movable
+   Refined Dark Surface, Zero Emojis, Fully Movable, Fixed Height
    ========================================================================== */
 
 #jh-monitor-box {
@@ -110,33 +110,48 @@
   background: rgba(239, 68, 68, 0.15) !important;
 }
 
-/* Body Content */
+/* Body Content - Consistent Spacing */
 .jh-body {
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
-/* Status Card */
+/* Unified Status Card - Identical Dimensions in Normal & Alarm Modes */
 .jh-status-card {
   background: #18191e;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 9px 11px;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.jh-status-card.alarm {
+  background: rgba(220, 38, 38, 0.12);
+  border-color: rgba(239, 68, 68, 0.4);
 }
 
 .jh-status-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .jh-status-label {
   font-weight: 600;
   font-size: 12.5px;
   color: #f4f4f5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.jh-status-card.alarm .jh-status-label {
+  color: #fecaca;
 }
 
 .jh-countdown-pill {
@@ -157,14 +172,14 @@
 }
 
 .jh-countdown-pill.alarm {
-  background: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.25);
   color: #f87171;
-  border-color: rgba(239, 68, 68, 0.35);
+  border-color: rgba(239, 68, 68, 0.45);
 }
 
-/* Top Job Preview - Full Name (No Truncation) */
+/* Top Job Preview - Fixed 2-Line Height Container */
 .jh-job-container {
-  padding-top: 8px;
+  padding-top: 6px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -174,26 +189,46 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #71717a;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
+}
+
+.jh-status-card.alarm .jh-job-header-label {
+  color: #f87171;
 }
 
 .jh-job-preview {
   font-size: 12px;
   font-weight: 500;
   color: #e4e4e7;
-  line-height: 1.45;
+  line-height: 1.4;
   white-space: normal;
   word-break: break-word;
-  max-height: 90px;
+  height: 34px; /* Locked 2-line height */
+  max-height: 34px;
   overflow-y: auto;
   user-select: text;
+}
+
+/* Status Hint - Reserved Height for Zero Layout Shift */
+.jh-status-hint {
+  font-size: 10.5px;
+  color: transparent;
+  margin-top: 4px;
+  font-weight: 500;
+  height: 14px;
+  line-height: 14px;
+  transition: color 0.15s ease;
+}
+
+.jh-status-card.alarm .jh-status-hint {
+  color: #fca5a5;
 }
 
 /* Refresh Interval Controls */
 .jh-interval-section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .jh-section-title {
@@ -211,14 +246,14 @@
 }
 
 .jh-number-input {
-  width: 58px;
-  height: 30px;
+  width: 54px;
+  height: 28px;
   background: #18191e;
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #f4f4f5;
-  padding: 0 6px;
+  padding: 0 4px;
   border-radius: 6px;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   text-align: center;
   outline: none;
@@ -237,12 +272,12 @@
 
 .jh-preset-btn {
   flex: 1;
-  height: 30px;
+  height: 28px;
   background: #18191e;
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: #a1a1aa;
   border-radius: 6px;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -260,6 +295,46 @@
   font-weight: 600;
 }
 
+/* Ringtone Selector - 4 Small Boxes That Light Up */
+.jh-ringtone-section {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.jh-ringtone-wrap {
+  display: flex;
+  gap: 4px;
+}
+
+.jh-ringtone-btn {
+  flex: 1;
+  height: 28px;
+  background: #18191e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #a1a1aa;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0 2px;
+  text-align: center;
+}
+
+.jh-ringtone-btn:hover {
+  background: #23252c;
+  color: #f4f4f5;
+}
+
+.jh-ringtone-btn.active {
+  background: #2563eb;
+  border-color: #3b82f6;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.35);
+}
+
 /* Bottom Action Buttons */
 .jh-buttons-row {
   display: flex;
@@ -269,7 +344,7 @@
 
 .jh-btn {
   flex: 1;
-  height: 34px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -310,30 +385,6 @@
   background: #23252c;
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.14);
-}
-
-/* Alert Notification Banner (Zero Emojis) */
-.jh-alarm-box {
-  background: rgba(220, 38, 38, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.35);
-  padding: 10px 12px;
-  border-radius: 8px;
-  color: #fca5a5;
-  font-size: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.jh-alarm-title {
-  font-weight: 600;
-  color: #fecaca;
-  font-size: 12px;
-}
-
-.jh-alarm-hint {
-  font-size: 11px;
-  color: #f87171;
 }
 
 /* Minimized Floating State */

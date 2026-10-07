@@ -44,14 +44,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'PLAY_ALARM') {
     ensureOffscreenDocument()
       .then(() => {
-        // Small delay to ensure offscreen script has initialized listeners if newly created
         setTimeout(() => {
-          chrome.runtime.sendMessage({ type: 'OFFSCREEN_START_CHIME' }).catch(() => {});
+          chrome.runtime.sendMessage({
+            type: 'OFFSCREEN_START_CHIME',
+            ringtone: message.ringtone || 'chime'
+          }).catch(() => {});
         }, 80);
       })
       .catch((err) => {
         console.error('Error creating offscreen audio document:', err);
       });
+  } else if (message.type === 'PREVIEW_ALARM') {
+    ensureOffscreenDocument()
+      .then(() => {
+        setTimeout(() => {
+          chrome.runtime.sendMessage({
+            type: 'OFFSCREEN_PREVIEW_CHIME',
+            ringtone: message.ringtone || 'chime'
+          }).catch(() => {});
+        }, 80);
+      })
+      .catch(() => {});
   } else if (message.type === 'STOP_ALARM') {
     chrome.runtime.sendMessage({ type: 'OFFSCREEN_STOP_CHIME' }).catch(() => {});
   }

@@ -1,7 +1,7 @@
 /**
  * Job Hunter Auto-Refresher - Content Script
  * Manifest V3 - Plain Vanilla JavaScript (Zero External Dependencies)
- * Humanized UI, Zero Emojis, Draggable Floating Panel, Full Title Display
+ * Humanized UI, Zero Emojis, Draggable Floating Panel, Fixed Height, 4 Ringtones
  */
 
 (() => {
@@ -18,7 +18,8 @@
     IS_MONITORING: 'jh_is_monitoring',
     IS_MINIMIZED: 'jh_is_minimized',
     IS_CLOSED: 'jh_is_closed',
-    UI_POSITION: 'jh_ui_pos'
+    UI_POSITION: 'jh_ui_pos',
+    RINGTONE: 'jh_ringtone'
   };
 
   const MAX_STORED_JOBS = 50;
@@ -47,16 +48,19 @@
   let detectedNewJobs = [];
   let isMinimized = false;
   let uiPosition = null;
+  let selectedRingtone = 'chime';
 
   // DOM Elements
   let uiBox = null;
+  let statusCard = null;
   let countdownBadge = null;
   let statusText = null;
   let topJobPreview = null;
+  let jobHeaderLabel = null;
+  let statusHint = null;
   let statusDot = null;
   let toggleBtn = null;
   let intervalInput = null;
-  let alarmContainer = null;
 
   /* ==========================================================================
      Storage Helpers (Async/Await)
@@ -71,7 +75,8 @@
           STORAGE_KEYS.IS_MONITORING,
           STORAGE_KEYS.IS_MINIMIZED,
           STORAGE_KEYS.IS_CLOSED,
-          STORAGE_KEYS.UI_POSITION
+          STORAGE_KEYS.UI_POSITION,
+          STORAGE_KEYS.RINGTONE
         ],
         (result) => resolve(result || {})
       );
@@ -126,7 +131,7 @@
     if (isAlarming) return;
     isAlarming = true;
     try {
-      chrome.runtime.sendMessage({ type: 'PLAY_ALARM' });
+      chrome.runtime.sendMessage({ type: 'PLAY_ALARM', ringtone: selectedRingtone });
     } catch (e) {
       // Extension context safeguard
     }
@@ -320,19 +325,19 @@
       </div>
 
       <div class="jh-body">
-        <div class="jh-status-card">
+        <div class="jh-status-card" id="jh-status-card">
           <div class="jh-status-top">
             <span class="jh-status-label" id="jh-status-text">Monitoring Active</span>
             <span class="jh-countdown-pill" id="jh-countdown-badge">10s</span>
           </div>
 
           <div class="jh-job-container">
-            <div class="jh-job-header-label">Top Job on Page</div>
+            <div class="jh-job-header-label" id="jh-job-header-label">Top Job on Page</div>
             <div class="jh-job-preview" id="jh-job-preview">Checking jobs...</div>
           </div>
-        </div>
 
-        <div id="jh-alarm-container"></div>
+          <div class="jh-status-hint" id="jh-status-hint">Click anywhere to silence & pause</div>
+        </div>
 
         <div class="jh-interval-section">
           <div class="jh-section-title">Refresh Interval</div>
@@ -344,6 +349,16 @@
               <button class="jh-preset-btn" data-sec="20">20s</button>
               <button class="jh-preset-btn" data-sec="30">30s</button>
             </div>
+          </div>
+        </div>
+
+        <div class="jh-ringtone-section">
+          <div class="jh-section-title">Alert Ringtone</div>
+          <div class="jh-ringtone-wrap">
+            <button class="jh-ringtone-btn" data-tone="chime">Chime</button>
+            <button class="jh-ringtone-btn" data-tone="pulse">Pulse</button>
+            <button class="jh-ringtone-btn" data-tone="bell">Bell</button>
+            <button class="jh-ringtone-btn" data-tone="marimba">Marimba</button>
           </div>
         </div>
 
@@ -367,13 +382,15 @@
     makeDraggable(uiBox, headerEl);
 
     // Cache element references
+    statusCard = uiBox.querySelector('#jh-status-card');
     countdownBadge = uiBox.querySelector('#jh-countdown-badge');
     statusText = uiBox.querySelector('#jh-status-text');
     topJobPreview = uiBox.querySelector('#jh-job-preview');
+    jobHeaderLabel = uiBox.querySelector('#jh-job-header-label');
+    statusHint = uiBox.querySelector('#jh-status-hint');
     statusDot = uiBox.querySelector('#jh-status-dot');
     toggleBtn = uiBox.querySelector('#jh-toggle-btn');
     intervalInput = uiBox.querySelector('#jh-interval-input');
-    alarmContainer = uiBox.querySelector('#jh-alarm-container');
 
     // Bind Controls
     uiBox.querySelector('#jh-min-btn').addEventListener('click', (e) => {
@@ -417,6 +434,20 @@
       });
     });
 
+    // Bind Ringtone Selection Buttons
+    uiBox.querySelectorAll('.jh-ringtone-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tone = btn.getAttribute('data-tone');
+        if (tone) {
+          selectedRingtone = tone;
+          setStorageData({ [STORAGE_KEYS.RINGTONE]: tone });
+          highlightActiveRingtone();
+          chrome.runtime.sendMessage({ type: 'PREVIEW_ALARM', ringtone: tone }).catch(() => {});
+        }
+      });
+    });
+
     uiBox.querySelector('#jh-reset-history-btn').addEventListener('click', async (e) => {
       e.stopPropagation();
       const visible = getVisibleJobs();
@@ -426,6 +457,15 @@
     });
 
     highlightActivePreset();
+    highlightActiveRingtone();
+  }
+
+  function highlightActiveRingtone() {
+    if (!uiBox) return;
+    uiBox.querySelectorAll('.jh-ringtone-btn').forEach((btn) => {
+      const tone = btn.getAttribute('data-tone');
+      btn.classList.toggle('active', tone === selectedRingtone);
+    });
   }
 
   function closeExtensionBox() {
@@ -518,22 +558,28 @@
   }
 
   function updateStatusDisplay() {
-    if (!countdownBadge || !statusText || !statusDot) return;
+    if (!countdownBadge || !statusText || !statusDot || !statusCard) return;
 
     if (isAlarming) {
+      statusCard.classList.add('alarm');
       countdownBadge.textContent = 'ALARM';
       countdownBadge.className = 'jh-countdown-pill alarm';
-      statusText.textContent = `${detectedNewJobs.length} New Job${detectedNewJobs.length > 1 ? 's' : ''} Detected`;
+      statusText.textContent = `${detectedNewJobs.length} New Job${detectedNewJobs.length > 1 ? 's' : ''} Found`;
+      if (jobHeaderLabel) jobHeaderLabel.textContent = 'New Vacancy Detected';
       statusDot.className = 'jh-status-dot alarm';
     } else if (isMonitoring) {
+      statusCard.classList.remove('alarm');
       countdownBadge.textContent = `${remainingSeconds}s`;
       countdownBadge.className = 'jh-countdown-pill';
       statusText.textContent = 'Monitoring Active';
+      if (jobHeaderLabel) jobHeaderLabel.textContent = 'Top Job on Page';
       statusDot.className = 'jh-status-dot';
     } else {
+      statusCard.classList.remove('alarm');
       countdownBadge.textContent = 'PAUSED';
       countdownBadge.className = 'jh-countdown-pill paused';
       statusText.textContent = 'Paused';
+      if (jobHeaderLabel) jobHeaderLabel.textContent = 'Top Job on Page';
       statusDot.className = 'jh-status-dot paused';
     }
   }
@@ -547,20 +593,6 @@
     } else {
       toggleBtn.className = 'jh-btn jh-btn-primary';
       toggleBtn.innerHTML = `${ICONS.PLAY} <span>Resume</span>`;
-    }
-
-    if (alarmContainer) {
-      if (isAlarming && detectedNewJobs.length > 0) {
-        alarmContainer.innerHTML = `
-          <div class="jh-alarm-box">
-            <div class="jh-alarm-title">${detectedNewJobs.length} New Job${detectedNewJobs.length > 1 ? 's' : ''} Found</div>
-            <div><strong>Latest:</strong> ${detectedNewJobs[0].title}</div>
-            <div class="jh-alarm-hint">Click anywhere on the screen to silence audio and pause</div>
-          </div>
-        `;
-      } else {
-        alarmContainer.innerHTML = '';
-      }
     }
 
     updateStatusDisplay();
@@ -588,6 +620,9 @@
     if (storage[STORAGE_KEYS.UI_POSITION]) {
       uiPosition = storage[STORAGE_KEYS.UI_POSITION];
     }
+    if (storage[STORAGE_KEYS.RINGTONE]) {
+      selectedRingtone = storage[STORAGE_KEYS.RINGTONE];
+    }
 
     remainingSeconds = refreshIntervalSec;
 
@@ -602,7 +637,6 @@
     const visibleJobs = await waitForJobCards();
 
     if (visibleJobs.length > 0) {
-      // Show full un-truncated title
       topJobPreview.textContent = visibleJobs[0].title;
     } else {
       topJobPreview.textContent = 'No job cards detected on page';
