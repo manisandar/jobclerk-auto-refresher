@@ -71,46 +71,30 @@
   }
 
   async function getStorageData() {
-    return new Promise((resolve) => {
-      if (!isExtensionValid()) return resolve({});
-      try {
-        chrome.storage.local.get(
-          [
-            STORAGE_KEYS.SEEN_JOBS,
-            STORAGE_KEYS.INTERVAL,
-            STORAGE_KEYS.IS_MONITORING,
-            STORAGE_KEYS.IS_MINIMIZED,
-            STORAGE_KEYS.IS_CLOSED,
-            STORAGE_KEYS.UI_POSITION,
-            STORAGE_KEYS.RINGTONE
-          ],
-          (result) => {
-            if (!isExtensionValid() || chrome.runtime.lastError) {
-              return resolve({});
-            }
-            resolve(result || {});
-          }
-        );
-      } catch (e) {
-        resolve({});
-      }
-    });
+    if (!isExtensionValid()) return {};
+    try {
+      const data = await chrome.storage.local.get([
+        STORAGE_KEYS.SEEN_JOBS,
+        STORAGE_KEYS.INTERVAL,
+        STORAGE_KEYS.IS_MONITORING,
+        STORAGE_KEYS.IS_MINIMIZED,
+        STORAGE_KEYS.IS_CLOSED,
+        STORAGE_KEYS.UI_POSITION,
+        STORAGE_KEYS.RINGTONE
+      ]);
+      return data || {};
+    } catch (err) {
+      return {};
+    }
   }
 
   async function setStorageData(data) {
-    return new Promise((resolve) => {
-      if (!isExtensionValid()) return resolve();
-      try {
-        chrome.storage.local.set(data, () => {
-          if (!isExtensionValid() || chrome.runtime.lastError) {
-            // Context invalidated during reload
-          }
-          resolve();
-        });
-      } catch (e) {
-        resolve();
-      }
-    });
+    if (!isExtensionValid()) return;
+    try {
+      await chrome.storage.local.set(data);
+    } catch (err) {
+      // Context invalidated during extension reload
+    }
   }
 
   /* ==========================================================================
@@ -631,78 +615,83 @@
      ========================================================================== */
 
   async function init() {
-    const storage = await getStorageData();
+    if (!isExtensionValid()) return;
+    try {
+      const storage = await getStorageData();
 
-    if (typeof storage[STORAGE_KEYS.IS_MONITORING] === 'boolean') {
-      isMonitoring = storage[STORAGE_KEYS.IS_MONITORING];
-    }
-    if (typeof storage[STORAGE_KEYS.INTERVAL] === 'number') {
-      refreshIntervalSec = storage[STORAGE_KEYS.INTERVAL];
-    }
-    if (typeof storage[STORAGE_KEYS.IS_MINIMIZED] === 'boolean') {
-      isMinimized = storage[STORAGE_KEYS.IS_MINIMIZED];
-    }
-    if (typeof storage[STORAGE_KEYS.IS_CLOSED] === 'boolean') {
-      isClosed = storage[STORAGE_KEYS.IS_CLOSED];
-    }
-    if (storage[STORAGE_KEYS.UI_POSITION]) {
-      uiPosition = storage[STORAGE_KEYS.UI_POSITION];
-    }
-    if (storage[STORAGE_KEYS.RINGTONE]) {
-      selectedRingtone = storage[STORAGE_KEYS.RINGTONE];
-    }
+      if (typeof storage[STORAGE_KEYS.IS_MONITORING] === 'boolean') {
+        isMonitoring = storage[STORAGE_KEYS.IS_MONITORING];
+      }
+      if (typeof storage[STORAGE_KEYS.INTERVAL] === 'number') {
+        refreshIntervalSec = storage[STORAGE_KEYS.INTERVAL];
+      }
+      if (typeof storage[STORAGE_KEYS.IS_MINIMIZED] === 'boolean') {
+        isMinimized = storage[STORAGE_KEYS.IS_MINIMIZED];
+      }
+      if (typeof storage[STORAGE_KEYS.IS_CLOSED] === 'boolean') {
+        isClosed = storage[STORAGE_KEYS.IS_CLOSED];
+      }
+      if (storage[STORAGE_KEYS.UI_POSITION]) {
+        uiPosition = storage[STORAGE_KEYS.UI_POSITION];
+      }
+      if (storage[STORAGE_KEYS.RINGTONE]) {
+        selectedRingtone = storage[STORAGE_KEYS.RINGTONE];
+      }
 
-    remainingSeconds = refreshIntervalSec;
+      remainingSeconds = refreshIntervalSec;
 
-    if (isClosed) {
-      createLauncherButton();
-      return;
-    }
+      if (isClosed) {
+        createLauncherButton();
+        return;
+      }
 
-    createUIBox();
-    updateUIState();
+      createUIBox();
+      updateUIState();
 
-    const visibleJobs = await waitForJobCards();
+      const visibleJobs = await waitForJobCards();
 
-    if (visibleJobs.length > 0) {
-      topJobPreview.textContent = visibleJobs[0].title;
-    } else {
-      topJobPreview.textContent = 'No job cards detected on page';
-    }
+      if (visibleJobs.length > 0) {
+        topJobPreview.textContent = visibleJobs[0].title;
+      } else {
+        topJobPreview.textContent = 'No job cards detected on page';
+      }
 
-    const seenSignatures = storage[STORAGE_KEYS.SEEN_JOBS] || null;
+      const seenSignatures = storage[STORAGE_KEYS.SEEN_JOBS] || null;
 
-    if (!seenSignatures || !Array.isArray(seenSignatures) || seenSignatures.length === 0) {
-      const allCurrent = visibleJobs.map((j) => j.signature).slice(0, MAX_STORED_JOBS);
-      await setStorageData({ [STORAGE_KEYS.SEEN_JOBS]: allCurrent });
-    } else if (visibleJobs.length > 0) {
-      const newJobsFound = [];
-      for (const job of visibleJobs) {
-        if (!seenSignatures.includes(job.signature)) {
-          newJobsFound.push(job);
-        } else {
-          break;
+      if (!seenSignatures || !Array.isArray(seenSignatures) || seenSignatures.length === 0) {
+        const allCurrent = visibleJobs.map((j) => j.signature).slice(0, MAX_STORED_JOBS);
+        await setStorageData({ [STORAGE_KEYS.SEEN_JOBS]: allCurrent });
+      } else if (visibleJobs.length > 0) {
+        const newJobsFound = [];
+        for (const job of visibleJobs) {
+          if (!seenSignatures.includes(job.signature)) {
+            newJobsFound.push(job);
+          } else {
+            break;
+          }
+        }
+
+        if (newJobsFound.length > 0) {
+          detectedNewJobs = newJobsFound;
+
+          const updatedSeen = [
+            ...newJobsFound.map((j) => j.signature),
+            ...seenSignatures
+          ].slice(0, MAX_STORED_JOBS);
+
+          await setStorageData({ [STORAGE_KEYS.SEEN_JOBS]: updatedSeen });
+
+          startAlarmLoop();
+          updateUIState();
+          return;
         }
       }
 
-      if (newJobsFound.length > 0) {
-        detectedNewJobs = newJobsFound;
-
-        const updatedSeen = [
-          ...newJobsFound.map((j) => j.signature),
-          ...seenSignatures
-        ].slice(0, MAX_STORED_JOBS);
-
-        await setStorageData({ [STORAGE_KEYS.SEEN_JOBS]: updatedSeen });
-
-        startAlarmLoop();
-        updateUIState();
-        return;
+      if (isMonitoring) {
+        startCountdown();
       }
-    }
-
-    if (isMonitoring) {
-      startCountdown();
+    } catch (err) {
+      // Exit gracefully if context was invalidated during init
     }
   }
 
