@@ -1,8 +1,10 @@
 # JobClerk Auto-Refresher and Vacancy Monitor
 
-A lightweight Chrome and Brave extension (Manifest V3) that monitors newly listed healthcare vacancies on JobClerk in real time, plays background audio chimes, and dispatches instant Telegram alerts with active search filter details.
+## About
 
-Built with vanilla JavaScript and CSS. No bundlers, no npm dependencies, and no external runtime requirements.
+JobClerk Auto-Refresher is an open-source Chromium extension (Manifest V3) built to monitor live NHS and healthcare vacancies on JobClerk in real time. It features a top-down boundary-scan detector that prevents false alarms when expired positions close, reliable background audio chime synthesis via the Offscreen Audio API, and instant Telegram push alerts with active search filters.
+
+Developed entirely in vanilla JavaScript and CSS without external build tooling, npm packages, or background telemetry.
 
 ---
 
