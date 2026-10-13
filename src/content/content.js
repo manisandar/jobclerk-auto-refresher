@@ -19,10 +19,7 @@
     IS_MINIMIZED: 'jh_is_minimized',
     IS_CLOSED: 'jh_is_closed',
     UI_POSITION: 'jh_ui_pos',
-    RINGTONE: 'jh_ringtone',
-    TG_ENABLED: 'jh_tg_enabled',
-    TG_TOKEN: 'jh_tg_token',
-    TG_CHAT_ID: 'jh_tg_chat_id'
+    RINGTONE: 'jh_ringtone'
   };
 
   const MAX_STORED_JOBS = 50;
@@ -38,9 +35,7 @@
     PAUSE: `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>`,
     PLAY: `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>`,
     RESET: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>`,
-    RADAR: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>`,
-    TELEGRAM: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>`,
-    CHEVRON_DOWN: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`
+    RADAR: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>`
   };
 
   // Runtime State
@@ -54,10 +49,6 @@
   let isMinimized = false;
   let uiPosition = null;
   let selectedRingtone = 'chime';
-  let isTelegramEnabled = false;
-  let telegramToken = '';
-  let telegramChatId = '';
-  let isTgDrawerOpen = false;
 
   // DOM Elements
   let uiBox = null;
@@ -89,10 +80,7 @@
         STORAGE_KEYS.IS_MINIMIZED,
         STORAGE_KEYS.IS_CLOSED,
         STORAGE_KEYS.UI_POSITION,
-        STORAGE_KEYS.RINGTONE,
-        STORAGE_KEYS.TG_ENABLED,
-        STORAGE_KEYS.TG_TOKEN,
-        STORAGE_KEYS.TG_CHAT_ID
+        STORAGE_KEYS.RINGTONE
       ]);
       return data || {};
     } catch (err) {
@@ -397,41 +385,6 @@
           </div>
         </div>
 
-        <div class="jh-telegram-section" id="jh-tg-section">
-          <div class="jh-telegram-header" id="jh-tg-header" title="Configure Telegram instant notifications">
-            <div class="jh-tg-title-left">
-              <span class="jh-tg-icon">${ICONS.TELEGRAM}</span>
-              <span class="jh-section-title">Telegram Alerts</span>
-            </div>
-            <div class="jh-tg-controls-right">
-              <label class="jh-switch" title="Toggle Telegram Notifications">
-                <input type="checkbox" id="jh-tg-toggle" ${isTelegramEnabled ? 'checked' : ''} />
-                <span class="jh-switch-slider"></span>
-              </label>
-              <button class="jh-icon-btn jh-tg-expand-btn" id="jh-tg-expand-btn" title="Telegram Bot Settings">
-                ${ICONS.CHEVRON_DOWN}
-              </button>
-            </div>
-          </div>
-
-          <div class="jh-tg-drawer" id="jh-tg-drawer">
-            <div class="jh-tg-input-group">
-              <label class="jh-tg-label">Bot Token (@BotFather)</label>
-              <input type="password" class="jh-text-input" id="jh-tg-token-input" placeholder="e.g. 7123456:AAH..." value="${telegramToken}" autocomplete="off" />
-            </div>
-
-            <div class="jh-tg-input-group">
-              <label class="jh-tg-label">Chat ID or @channel</label>
-              <input type="text" class="jh-text-input" id="jh-tg-chat-input" placeholder="User ID, Group ID, or @channel" value="${telegramChatId}" autocomplete="off" />
-            </div>
-
-            <div class="jh-tg-footer-row">
-              <button class="jh-btn jh-btn-secondary jh-btn-sm" id="jh-tg-test-btn" type="button">Test Alert</button>
-              <span class="jh-tg-status-feedback" id="jh-tg-feedback"></span>
-            </div>
-          </div>
-        </div>
-
         <div class="jh-buttons-row">
           <button class="jh-btn jh-btn-danger" id="jh-toggle-btn">
             ${ICONS.PAUSE}
@@ -528,92 +481,6 @@
 
     highlightActivePreset();
     highlightActiveRingtone();
-
-    // Telegram Configuration Logic
-    const tgSection = uiBox.querySelector('#jh-tg-section');
-    const tgHeader = uiBox.querySelector('#jh-tg-header');
-    const tgDrawer = uiBox.querySelector('#jh-tg-drawer');
-    const tgExpandBtn = uiBox.querySelector('#jh-tg-expand-btn');
-    const tgToggle = uiBox.querySelector('#jh-tg-toggle');
-    const tgTokenInput = uiBox.querySelector('#jh-tg-token-input');
-    const tgChatInput = uiBox.querySelector('#jh-tg-chat-input');
-    const tgTestBtn = uiBox.querySelector('#jh-tg-test-btn');
-    const tgFeedback = uiBox.querySelector('#jh-tg-feedback');
-
-    function toggleTgDrawer(forceOpen) {
-      isTgDrawerOpen = typeof forceOpen === 'boolean' ? forceOpen : !isTgDrawerOpen;
-      tgDrawer.classList.toggle('open', isTgDrawerOpen);
-      tgExpandBtn.classList.toggle('open', isTgDrawerOpen);
-    }
-
-    tgHeader.addEventListener('click', (e) => {
-      if (e.target.closest('.jh-switch')) return;
-      e.stopPropagation();
-      toggleTgDrawer();
-    });
-
-    tgToggle.addEventListener('change', (e) => {
-      e.stopPropagation();
-      isTelegramEnabled = e.target.checked;
-      tgSection.classList.toggle('active', isTelegramEnabled);
-      setStorageData({ [STORAGE_KEYS.TG_ENABLED]: isTelegramEnabled });
-      if (isTelegramEnabled && (!telegramToken || !telegramChatId)) {
-        toggleTgDrawer(true);
-      }
-    });
-
-    function saveTelegramSettings() {
-      telegramToken = (tgTokenInput.value || '').trim();
-      telegramChatId = (tgChatInput.value || '').trim();
-      setStorageData({
-        [STORAGE_KEYS.TG_TOKEN]: telegramToken,
-        [STORAGE_KEYS.TG_CHAT_ID]: telegramChatId
-      });
-    }
-
-    tgTokenInput.addEventListener('input', saveTelegramSettings);
-    tgChatInput.addEventListener('input', saveTelegramSettings);
-
-    tgTestBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      saveTelegramSettings();
-      if (!telegramToken || !telegramChatId) {
-        tgFeedback.textContent = 'Token & ID required';
-        tgFeedback.className = 'jh-tg-status-feedback error';
-        return;
-      }
-      tgFeedback.textContent = 'Sending...';
-      tgFeedback.className = 'jh-tg-status-feedback';
-
-      if (!isExtensionValid()) {
-        tgFeedback.textContent = 'Reload tab';
-        tgFeedback.className = 'jh-tg-status-feedback error';
-        return;
-      }
-
-      chrome.runtime.sendMessage({
-        type: 'TEST_TELEGRAM',
-        token: telegramToken,
-        chatId: telegramChatId
-      }, (res) => {
-        if (chrome.runtime.lastError) {
-          tgFeedback.textContent = 'Connection error';
-          tgFeedback.className = 'jh-tg-status-feedback error';
-          return;
-        }
-        if (res && res.success) {
-          tgFeedback.textContent = 'Message sent!';
-          tgFeedback.className = 'jh-tg-status-feedback success';
-        } else {
-          tgFeedback.textContent = (res && res.error) ? res.error : 'Failed to send';
-          tgFeedback.className = 'jh-tg-status-feedback error';
-        }
-      });
-    });
-
-    if (isTelegramEnabled) {
-      tgSection.classList.add('active');
-    }
   }
 
   function highlightActiveRingtone() {
@@ -781,15 +648,6 @@
       if (storage[STORAGE_KEYS.RINGTONE]) {
         selectedRingtone = storage[STORAGE_KEYS.RINGTONE];
       }
-      if (typeof storage[STORAGE_KEYS.TG_ENABLED] === 'boolean') {
-        isTelegramEnabled = storage[STORAGE_KEYS.TG_ENABLED];
-      }
-      if (typeof storage[STORAGE_KEYS.TG_TOKEN] === 'string') {
-        telegramToken = storage[STORAGE_KEYS.TG_TOKEN];
-      }
-      if (typeof storage[STORAGE_KEYS.TG_CHAT_ID] === 'string') {
-        telegramChatId = storage[STORAGE_KEYS.TG_CHAT_ID];
-      }
 
       remainingSeconds = refreshIntervalSec;
 
@@ -837,12 +695,10 @@
           startAlarmLoop();
           updateUIState();
 
-          // Dispatch Telegram notification if configured
-          if (isTelegramEnabled && telegramToken && telegramChatId) {
+          // Dispatch Telegram alert via background service worker
+          if (isExtensionValid()) {
             chrome.runtime.sendMessage({
               type: 'SEND_TELEGRAM_ALERT',
-              token: telegramToken,
-              chatId: telegramChatId,
               jobs: newJobsFound
             }).catch(() => {});
           }

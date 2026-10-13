@@ -81,22 +81,21 @@ Receive instant job vacancy push notifications on your phone or desktop via Tele
 3. Follow the prompts: choose a display name (e.g., `JobClerk Alerts`) and a username ending in `bot` (e.g., `jobclerk_myalerts_bot`).
 4. `@BotFather` will reply with your **HTTP API Token** (e.g., `7123456789:AAHk...`). Copy this token.
 
-### 2. Choose How to Receive Alerts
+### 2. Configure Telegram in the Code
 
-#### Option A: Direct Personal DM (Recommended for Private Use)
-1. In Telegram, search for your newly created bot username and click **Start** (or send `/start`).
-2. Search for **`@userinfobot`** in Telegram and click **Start**. It will immediately display your numeric **`Id`** (e.g., `123456789`).
-3. In the Job Monitor floating panel, expand **Telegram Alerts**:
-   - Paste your **Bot Token**.
-   - Paste your **User ID** as the **Chat ID**.
-   - Click **Test Alert** to verify the connection.
+Open [`src/background/background.js`](file:///Users/htooaungnyan/Documents/Assumption/Projects/Auto%20Refresh%20Chrome%20Extension/src/background/background.js) and paste your credentials into `TELEGRAM_CONFIG`:
 
-#### Option B: Telegram Channel or Group (Easiest to Share with Others)
-*No need to collect individual account IDs from other people!*
-1. Create a new Telegram Channel or Group (e.g., "JobClerk Alerts").
-2. Add your bot as a member and promote it to **Administrator** with "Post Messages" permission.
-3. Use the channel username (e.g., `@my_job_channel`) or group ID as the **Chat ID** in the extension.
-4. Share the invite link with anyone you want to receive alerts! Anyone who joins gets every alert automatically.
+```javascript
+const TELEGRAM_CONFIG = {
+  ENABLED: true, // Set to false to disable alerts
+  BOT_TOKEN: 'YOUR_BOT_TOKEN_HERE', // From @BotFather
+  CHAT_ID: '@YOUR_CHANNEL_USERNAME'  // Your channel username (e.g. '@my_job_channel')
+};
+```
+
+1. Add your bot into your Telegram Channel as an **Administrator** with permission to **Post Messages**.
+2. Put your channel's public handle (e.g. `@my_job_alerts`) or numeric ID as `CHAT_ID`.
+3. Whenever a new job appears, the extension automatically sends the vacancy details and direct link into your Telegram channel!
 
 ---
 
