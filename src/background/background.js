@@ -87,7 +87,7 @@ function formatJobAlertMessage(jobs, filters) {
   if (filters && typeof filters === 'object') {
     const filterEntries = Object.entries(filters).filter(([k, v]) => v && String(v).trim().length > 0);
     if (filterEntries.length > 0) {
-      text += `🎯 <b>Active Filters:</b>\n`;
+      text += `<b>Active Filters:</b>\n`;
       filterEntries.forEach(([key, val]) => {
         text += `• <b>${escapeHtml(key)}:</b> ${escapeHtml(val)}\n`;
       });

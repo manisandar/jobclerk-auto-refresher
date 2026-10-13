@@ -8,3 +8,7 @@ src/config/config.json
 src/config/config.js
 .env
 .env.*
+
+# Temporary and debug dumps
+scratch*
+view-source*

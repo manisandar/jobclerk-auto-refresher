@@ -1,120 +1,131 @@
-# JobClerk Auto-Refresher & Monitor
+# JobClerk Auto-Refresher and Vacancy Monitor
 
-[![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue.svg)](https://developer.chrome.com/docs/extensions/mv3/intro/)
-[![Target Browser](https://img.shields.io/badge/Browser-Brave%20%7C%20Chrome-orange.svg)](https://brave.com/)
-[![Pure Vanilla JS](https://img.shields.io/badge/JavaScript-Vanilla%20(No%20Bundler)-yellow.svg)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+A lightweight Chrome and Brave extension (Manifest V3) that monitors newly listed healthcare vacancies on JobClerk in real time, plays background audio chimes, and dispatches instant Telegram alerts with active search filter details.
 
-A high-performance, lightweight Chromium extension designed specifically to monitor newly posted jobs on **[JobClerk](https://www.jobclerk.com)** in real time with continuous audio chime alerts and zero false alarms.
+Built with vanilla JavaScript and CSS. No bundlers, no npm dependencies, and no external runtime requirements.
 
 ---
 
-## Key Highlights
+## Why This Was Built
 
-- **Tailored for JobClerk**: Matches strictly to `https://*.jobclerk.com/*` so it never runs on or interferes with unrelated websites.
-- **False-Alarm Proof**: Uses a top-down boundary scan algorithm. When an old job closes and the 2nd job shifts to the top, it recognizes it in cache and suppresses false alerts.
-- **Multi-Job Batch Detection**: Catches multiple jobs arriving in the same refresh interval and records them all in one batch.
-- **Instant Telegram Alerts**: Sends instant notifications directly to personal Telegram chats, private groups, or public channels with direct clickable job links.
-- **Unattended Audio Alerts**: Built with the Manifest V3 Offscreen Audio API (`chrome.offscreen`). Chimes trigger reliably in the background without getting blocked by Chromium's autoplay policy.
-- **Screen-Wide Click-to-Stop**: A single click anywhere on the webpage instantly silences the alarm and pauses the refresh countdown.
-- **Movable & Persistent HUD**: Drag and drop the control box anywhere on your screen. The panel stays pinned to your custom coordinates across all 10-second reloads.
-- **Full Title Legibility**: Long medical and clinical job titles wrap naturally and are displayed completely without truncation.
-- **Zero Bloat**: Plain Vanilla JavaScript and CSS. Zero npm packages, zero external build tools, zero external audio files.
+Healthcare and NHS vacancies on JobClerk can open and fill rapidly. Manually refreshing the job board throughout the day is tedious, while standard auto-refresh extensions suffer from two major flaws:
+
+1. **False Alarms When Postings Expire**: When an older job expires or closes, the second job shifts into the top position. Generic page monitors mistake this shift for a new listing and trigger unwanted alarms.
+2. **Autoplay Audio Restrictions**: Modern Chromium browsers block background tabs from playing audio unless user interaction was recently detected on that specific tab.
+
+This extension solves both problems:
+- A boundary-scan algorithm checks incoming listings against cached job signatures. It verifies whether an arrival is truly new or simply an existing listing moving up.
+- Manifest V3 offscreen audio synthesis ensures alert chimes trigger reliably in the background, even while you are working in other applications or away from your desk.
 
 ---
 
-## Installation & Setup
+## Features
 
-### 1. Clone the Repository
+- **Scoped Exclusively to JobClerk**: Runs only on `https://*.jobclerk.com/*` and does not interact with other websites.
+- **Accurate Vacancy Detection**: Distinguishes between new arrivals and closed positions shifting up.
+- **Batch Detection**: Catches multiple postings that arrive within the same refresh interval and includes direct links to all of them.
+- **Telegram Push Notifications**: Posts alerts straight to your Telegram channel, group, or direct chat with active search filters (profession, grades, location, keyword) and direct vacancy URLs.
+- **Reliable Background Audio**: Uses the Manifest V3 Offscreen Audio API to loop audio chimes until acknowledged. Four customizable synthesized tones are included.
+- **Screen-Wide Click-to-Silence**: Clicking anywhere on the page instantly silences the alarm and pauses the countdown so you can inspect the listing without disruption.
+- **Draggable, Persistent Interface**: A minimal dark control box that can be dragged anywhere on screen. Coordinates and preferences persist across reloads.
+- **Full Title Legibility**: Long NHS titles and band descriptions wrap cleanly and are displayed in full without truncation.
+
+---
+
+## Installation
+
+### 1. Clone or Download the Repository
+
 ```bash
 git clone https://github.com/manisandar/jobclerk-auto-refresher.git
 ```
 
-### 2. Load into Brave or Chrome
+### 2. Load the Extension in Brave or Chrome
+
 1. Open your browser and navigate to the extensions page:
-   - **Brave**: `brave://extensions`
-   - **Chrome**: `chrome://extensions`
-2. Enable **Developer mode** via the toggle switch in the top-right corner.
-3. Click the **Load unpacked** button in the top-left corner.
-4. Select the cloned `jobclerk-auto-refresher` directory.
-5. The extension is now loaded and active.
+   - Brave: `brave://extensions`
+   - Chrome: `chrome://extensions`
+2. Turn on **Developer mode** using the toggle in the upper right corner.
+3. Click **Load unpacked** in the top left.
+4. Select the `jobclerk-auto-refresher` project folder.
+5. The extension is now installed.
 
 ---
 
-## How to Use with JobClerk
+## Telegram Alerts Configuration
 
-### 1. Open JobClerk with Your Preferred Search Filters
-Navigate to your target JobClerk search URL, for example:
-```
-https://www.jobclerk.com/jobs?market=uk&sort=newest&grade=Junior&profession=Medical+doctor
-```
-> **Recommendation:** Ensure your results are sorted by **Newest** so that newly posted listings appear at the top.
+Telegram notifications are optional and configured via a local JSON file that is excluded from Git to keep your bot credentials private.
 
-### 2. Automatic Baseline Initialization
-- When you first open JobClerk, the **Job Monitor** control box will appear on the screen.
-- It automatically seeds all currently visible jobs into local extension storage (`chrome.storage.local`) as the baseline.
-- Existing jobs on initial load will **never** trigger an alarm.
+### 1. Create a Bot via BotFather
 
-### 3. Live Countdown & Auto-Refresh
-- The on-screen badge displays a real-time countdown (`10s... 9s... 8s...`).
-- When the countdown finishes, the page automatically reloads and checks for new arrivals.
-- You can change the interval anytime using the number input or quick preset chips (`5s`, `10s`, `20s`, `30s`).
-
-### 4. When a New Job Arrives
-- A continuous, pleasant two-tone melodic chime starts looping (every ~1.2s).
-- The refresh timer automatically **halts** so the page will not refresh away while you review or apply for the job.
-- The control box displays the number of new jobs and the full title of the latest arrival.
-
-### 5. Silencing & Resuming
-- **To Silence & Pause**: Click **anywhere on the webpage**. The audio immediately stops and the countdown pauses.
-- **To Resume**: When you are ready to continue monitoring, click **`Resume`** in the control box.
-
----
-
-## Telegram Notifications Setup
-
-Receive instant job vacancy push notifications on your phone or desktop via Telegram:
-
-### 1. Create Your Telegram Bot (Takes 1 Minute)
-1. Open Telegram and search for **`@BotFather`** (the official verified Telegram bot builder).
+1. In Telegram, start a chat with `@BotFather`.
 2. Send `/newbot`.
-3. Follow the prompts: choose a display name (e.g., `JobClerk Alerts`) and a username ending in `bot` (e.g., `jobclerk_myalerts_bot`).
-4. `@BotFather` will reply with your **HTTP API Token** (e.g., `7123456789:AAHk...`). Copy this token.
+3. Choose a display name (for example, `JobClerk Alerts`) and a username ending in `bot` (for example, `jobclerk_my_bot`).
+4. Copy the HTTP API token provided by BotFather.
 
-### 2. Configure Telegram Credentials (Secure & Excluded from Git)
+### 2. Set Up Your Channel or Chat
 
-Credentials are kept in a separate file, `src/config/config.json`, which is automatically excluded by `.gitignore` so your secret token will never be exposed or pushed to GitHub:
+1. Create a public or private Telegram channel (for example, `t.me/your_channel`).
+2. Add your newly created bot as an **Administrator** in the channel.
+3. Ensure the bot has permission to **Post Messages**.
 
-1. Copy [`src/config/config.example.json`](file:///Users/htooaungnyan/Documents/Assumption/Projects/Auto%20Refresh%20Chrome%20Extension/src/config/config.example.json) to `src/config/config.json`:
+### 3. Add Your Local Config
+
+1. Copy the example configuration template:
    ```bash
    cp src/config/config.example.json src/config/config.json
    ```
-2. Edit `src/config/config.json` with your credentials:
+2. Open `src/config/config.json` and insert your token and channel username:
    ```json
    {
      "ENABLED": true,
-     "BOT_TOKEN": "YOUR_BOT_TOKEN_FROM_BOTFATHER",
-     "CHAT_ID": "@jobclerkalerts"
+     "BOT_TOKEN": "YOUR_BOT_TOKEN_HERE",
+     "CHAT_ID": "@your_channel"
    }
    ```
-3. Add your bot into your Telegram Channel as an **Administrator** with permission to **Post Messages**.
-4. Whenever a new vacancy appears on JobClerk, the extension automatically posts the job details with a direct link into your Telegram channel!
+   *(Note: For channels, use `@channelusername`. For groups or direct messages, use the numeric chat ID.)*
+3. Save the file and reload the extension in `chrome://extensions`.
 
 ---
 
-## Controls & Keyboard Shortcuts
+## How It Works
 
-| Control / Action | Description |
-| :--- | :--- |
-| **Header Drag** | Click and drag the panel header to reposition it anywhere on your screen. Coordinates persist across reloads. |
-| **Click Anywhere** | Silences the audio alarm and pauses the auto-refresh timer immediately. |
-| **Preset Chips (`5s`, `10s`, `20s`, `30s`)** | Instantly switches the refresh interval. Persists in storage. |
-| **Ringtone Chips (`Chime`, `Pulse`, `Bell`, `Marimba`)** | Choose from 4 distinct synthesized alert tones. Plays a preview on click and lights up the active tone. |
-| **`Stop` / `Resume`** | Toggles monitoring on or off manually. |
-| **`Reset`** | Re-seeds the baseline with the currently visible jobs on the page. |
-| **`_` (Minimize)** | Collapses the panel into an unobtrusive mini-pill. |
-| **`✕` (Close)** | Dismisses the panel and pauses monitoring, leaving a discreet corner launcher button. |
-| **`Option + J`** *(Mac)* / **`Alt + J`** *(Win)* | Keyboard shortcut to toggle the control panel open or closed. |
+### Filter Scraper
+When a new vacancy is detected, the extension scrapes active filters to include in the Telegram message:
+- **Canonical URL Query Parameters**: Parses parameters like `profession`, `grade`, and multi-values (e.g. `grade=Junior&grade=Senior`).
+- **Path Routing**: Automatically parses category routes such as `/jobs/registered-nurse`.
+- **DOM Combobox Fallback**: Scrapes active selections from JobClerk filter buttons once client-side hydration completes.
+- **Clean Output**: Strips internal query parameters such as `market=uk` and `sort=newest` so notifications stay clean and focused.
+
+### Telegram Alert Format
+When listings are detected, the message is delivered in the following structure:
+
+```
+JobClerk Alert: 2 New Vacancies Detected
+
+Target Search Filters:
+- Profession: Medical doctor
+- Grade: Junior, Senior
+
+1. Specialty Doctor - General Medicine
+   https://www.jobclerk.com/job/...
+2. Clinical Fellow - Emergency Medicine
+   https://www.jobclerk.com/job/...
+
+Detected at 10:45:12 AM via JobClerk Refresher
+```
+
+---
+
+## Controls and Shortcuts
+
+- **Header Drag**: Click and drag the panel header to reposition the widget. Coordinates persist across tab reloads.
+- **Click Anywhere**: A single click anywhere on the page silences the chime and pauses the countdown timer.
+- **Interval Chips**: Choose 5s, 10s, 20s, or 30s presets, or enter a custom duration in seconds.
+- **Tone Selector**: Select between Chime, Pulse, Bell, and Marimba tones with live audio preview.
+- **Stop / Resume**: Pauses or resumes the countdown.
+- **Reset**: Re-seeds the baseline with the currently visible jobs.
+- **Keyboard Shortcut**: Press `Option + J` on macOS or `Alt + J` on Windows/Linux to toggle the control widget.
 
 ---
 
@@ -122,29 +133,36 @@ Credentials are kept in a separate file, `src/config/config.json`, which is auto
 
 ```
 jobclerk-auto-refresher/
-├── manifest.json              # Manifest V3 extension configuration & permissions
-├── .gitignore                 # Git ignore rules
+├── manifest.json              # Manifest V3 configuration and permissions
+├── .gitignore                 # Excludes local tokens and temporary dumps
 ├── README.md                  # Project documentation
+├── CHROMEWEBSTORE.md          # Store listing metadata and permissions justifications
+├── LICENSE                    # MIT license
+├── assets/
+│   └── icons/                 # Extension icons (16px, 48px, 128px)
 ├── src/
+│   ├── audio/
+│   │   ├── offscreen.html     # Manifest V3 offscreen audio sandbox
+│   │   └── offscreen.js       # Web Audio API tone synthesizer
 │   ├── background/
-│   │   └── background.js      # Background service worker managing offscreen audio
-│   ├── content/
-│   │   ├── content.js         # DOM detection, boundary scan & draggable UI
-│   │   └── styles.css         # Modern dark-slate floating panel styling
-│   └── audio/
-│       ├── offscreen.html     # Offscreen audio host document
-│       └── offscreen.js       # Web Audio API continuous chime synthesizer
+│   │   └── background.js      # Background service worker & Telegram dispatcher
+│   ├── config/
+│   │   ├── config.example.json# Template for credentials
+│   │   └── config.json        # Local credentials (ignored by Git)
+│   └── content/
+│       ├── content.js         # In-page detector, filter scraper & UI controller
+│       └── styles.css         # Minimal dark floating panel styles
 └── tests/
-    └── test-job-board.html    # Mock job board for local offline testing
+    └── test-job-board.html    # Standalone mock job board for local testing
 ```
 
 ---
 
-## Technical Details
+## Privacy and Security
 
-- **Target DOM Selector**: `h2.text-secondary, .flex.items-start.justify-between h2, h2.font-semibold`
-- **History Capping**: Retains the 50 most recent job signatures using FIFO eviction to ensure zero memory bloat.
-- **Audio Engine**: Synthesized via browser Web Audio API oscillator nodes (587.33 Hz $\rightarrow$ 880.00 Hz) inside an offscreen document sandbox.
+- **Zero Third-Party Analytics**: No telemetry, tracking scripts, or external dependencies.
+- **Local Credentials**: Telegram tokens are read strictly by the background service worker from your local `src/config/config.json`. The token is never exposed to content scripts or injected into webpage DOMs.
+- **Storage Scope**: Extension data (`chrome.storage.local`) only stores your interval preferences, panel position, and the 50 most recent job signatures for cache eviction.
 
 ---
 

@@ -141,73 +141,210 @@
 
   /* ==========================================================================
      Active Search Filter Extraction
-     Scrapes active filters from URL parameters and page DOM elements
+     Multi-layer scraper for URL parameters, pathname routing, DOM comboboxes,
+     search inputs, and hydration scripts.
      ========================================================================== */
+
+  async function waitForComboboxHydration(maxWaitMs = 800) {
+    const startTime = Date.now();
+    while (Date.now() - startTime < maxWaitMs) {
+      const comboboxes = document.querySelectorAll('button[role="combobox"]');
+      if (comboboxes.length >= 2) return true;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return false;
+  }
 
   function getActiveFilters() {
     const filterMap = {};
 
-    // 1. Scrape from JobClerk DOM combobox buttons
+    // Layer 1: Canonical URL query parameters (highest fidelity for multi-selects like Junior, Senior)
+    try {
+      const url = new URL(window.location.href);
+      const urlParams = url.searchParams;
+
+      const paramAliasMap = {
+        profession: 'Profession',
+        professions: 'Profession',
+        professioncode: 'Profession',
+        professioncodes: 'Profession',
+        role: 'Profession',
+        roles: 'Profession',
+        grade: 'Grade',
+        grades: 'Grade',
+        gradecode: 'Grade',
+        gradecodes: 'Grade',
+        region: 'Region',
+        regions: 'Region',
+        location: 'Location',
+        town: 'Location',
+        postcode: 'Location',
+        speciality: 'Speciality',
+        specialty: 'Speciality',
+        specialitycode: 'Speciality',
+        specialtycode: 'Speciality',
+        employer: 'Employer',
+        employername: 'Employer',
+        q: 'Keyword',
+        query: 'Keyword',
+        keyword: 'Keyword'
+      };
+
+      const ignoredKeys = new Set([
+        'market', 'sort', 'page', 'limit', 'view', 'order', 'cursor', 'dir', 'effective_sort'
+      ]);
+
+      const seenKeys = new Set();
+      urlParams.forEach((_, key) => {
+        const lowerKey = key.toLowerCase();
+        if (ignoredKeys.has(lowerKey) || seenKeys.has(lowerKey)) return;
+        seenKeys.add(lowerKey);
+
+        const rawVals = urlParams.getAll(key);
+        const allVals = [];
+        rawVals.forEach((v) => {
+          v.split(',').forEach((sub) => {
+            const cleanSub = sub.trim().replace(/\+/g, ' ');
+            if (cleanSub) allVals.push(cleanSub);
+          });
+        });
+
+        if (allVals.length > 0) {
+          const canonicalKey = paramAliasMap[lowerKey] || (key.charAt(0).toUpperCase() + key.slice(1));
+          filterMap[canonicalKey] = allVals.join(', ');
+        }
+      });
+    } catch (e) {}
+
+    // Layer 2: URL Pathname segments (e.g. /jobs/registered-nurse or /jobs/medical-doctor/junior)
+    try {
+      const pathname = window.location.pathname.replace(/^\/jobs\/?/, '').replace(/\/$/, '');
+      if (pathname) {
+        const segments = pathname.split('/').filter(Boolean);
+        if (segments.length > 0 && !filterMap['Profession']) {
+          const seg0 = decodeURIComponent(segments[0])
+            .replace(/[-_]/g, ' ')
+            .replace(/\b\w/g, (c) => c.toUpperCase());
+          if (!['search', 'all', 'feed', 'saved', 'applied'].includes(seg0.toLowerCase())) {
+            filterMap['Profession'] = seg0;
+          }
+        }
+        if (segments.length > 1 && !filterMap['Grade']) {
+          const seg1 = decodeURIComponent(segments[1])
+            .replace(/[-_]/g, ' ')
+            .replace(/\b\w/g, (c) => c.toUpperCase());
+          filterMap['Grade'] = seg1;
+        }
+      }
+    } catch (e) {}
+
+    // Layer 3: DOM Combobox buttons (desktop & tablet filter bar)
     try {
       const comboboxes = document.querySelectorAll('button[role="combobox"]');
       comboboxes.forEach((btn) => {
-        const label = btn.getAttribute('aria-label') || '';
-        if (label.includes(':')) {
-          const parts = label.split(':').map((s) => s.trim());
-          const cat = parts[0];
-          const val = parts.slice(1).join(':').trim();
-          if (val && val.toLowerCase() !== cat.toLowerCase()) {
-            filterMap[cat] = val;
+        const label = (btn.getAttribute('aria-label') || '').trim();
+        const span = btn.querySelector('span');
+        const spanTitle = span ? (span.getAttribute('title') || '').trim() : '';
+        const spanText = span ? span.textContent.trim() : '';
+
+        // Determine category
+        let category = null;
+        const defaultCats = ['Region', 'Profession', 'Grade', 'Speciality', 'Specialty', 'Employer'];
+        for (const cat of defaultCats) {
+          if (label.toLowerCase().includes(cat.toLowerCase())) {
+            category = cat.toLowerCase().includes('special') ? 'Speciality' : cat;
+            break;
           }
-        } else {
-          const span = btn.querySelector('span');
-          const text = span ? span.textContent.trim() : '';
-          const defaultCategories = ['Region', 'Profession', 'Grade', 'Speciality', 'Specialty', 'Employer', 'Market'];
-          for (const cat of defaultCategories) {
-            const matchesId = btn.id && btn.id.toLowerCase().includes(cat.toLowerCase());
-            const matchesLabel = label && label.toLowerCase().includes(cat.toLowerCase());
-            if ((matchesId || matchesLabel) && text && text !== cat) {
-              filterMap[cat] = text;
+        }
+
+        if (!category) return;
+
+        // Determine selected value
+        let val = null;
+        if (label.includes(':')) {
+          const parts = label.split(':');
+          const ariaVal = parts.slice(1).join(':').trim();
+          if (ariaVal && ariaVal.toLowerCase() !== category.toLowerCase()) {
+            val = ariaVal;
+          }
+        }
+
+        if (!val || val.toLowerCase() === category.toLowerCase()) {
+          const candidate = spanTitle || spanText;
+          if (candidate && candidate.toLowerCase() !== category.toLowerCase()) {
+            val = candidate;
+          }
+        }
+
+        if (val && val.toLowerCase() !== category.toLowerCase()) {
+          const isGenericCount = /^\d+\s*selected$/i.test(val);
+          if (isGenericCount) {
+            // Keep URL param (e.g. "Junior, Senior") if already set; otherwise use count
+            if (!filterMap[category]) {
+              filterMap[category] = val;
+            }
+          } else {
+            // Prefer the human-readable DOM label unless URL has multiple comma-separated items
+            const existingUrlVal = filterMap[category];
+            if (!existingUrlVal || !existingUrlVal.includes(',')) {
+              filterMap[category] = val;
             }
           }
         }
       });
     } catch (e) {}
 
-    // 2. Scrape search keyword and location inputs
+    // Layer 4: Keyword & Location text inputs
     try {
-      const keywordInput = document.querySelector('input[placeholder*="Job title"], input[aria-label="Search for jobs"], input[enterkeyhint="search"]');
-      if (keywordInput && keywordInput.value && keywordInput.value.trim()) {
+      const keywordInput = document.querySelector(
+        'input[placeholder*="Job title" i], input[aria-label="Search for jobs" i], input[enterkeyhint="search" i]'
+      );
+      if (keywordInput && keywordInput.value && keywordInput.value.trim() && !filterMap['Keyword']) {
         filterMap['Keyword'] = keywordInput.value.trim();
       }
 
-      const locationInput = document.querySelector('input[aria-label="Town or postcode"], input[placeholder*="Town or full postcode"]');
-      if (locationInput && locationInput.value && locationInput.value.trim()) {
+      const locationInput = document.querySelector(
+        'input[aria-label="Town or postcode" i], input[placeholder*="Town or full postcode" i]'
+      );
+      if (locationInput && locationInput.value && locationInput.value.trim() && !filterMap['Location']) {
         filterMap['Location'] = locationInput.value.trim();
       }
     } catch (e) {}
 
-    // 3. Extract & merge URL parameters (captures multiple values e.g. grade=Junior&grade=Senior)
+    // Layer 5: Fallback scan Next.js embedded JSON scripts if still missing profession/grade
     try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const ignoredKeys = ['sort', 'page', 'limit', 'view', 'order'];
-      const seenKeys = new Set();
+      if (!filterMap['Profession'] || !filterMap['Grade']) {
+        const scripts = document.querySelectorAll('script');
+        for (const s of scripts) {
+          const content = s.textContent || '';
+          if (!content.includes('profession') && !content.includes('grade')) continue;
 
-      urlParams.forEach((_, key) => {
-        const lowerKey = key.toLowerCase();
-        if (ignoredKeys.includes(lowerKey)) return;
-        if (seenKeys.has(lowerKey)) return;
-        seenKeys.add(lowerKey);
-
-        const allVals = urlParams.getAll(key).map((v) => v.trim()).filter(Boolean);
-        if (allVals.length > 0) {
-          const prettyKey = key.charAt(0).toUpperCase() + key.slice(1);
-          // If DOM already captured a more readable label, keep it; otherwise use URL param
-          if (!filterMap[prettyKey]) {
-            filterMap[prettyKey] = allVals.join(', ');
+          if (!filterMap['Profession']) {
+            const profMatch = content.match(/\"profession(?:Labels)?\":\s*\[?\"([^\"]+)\"/i) ||
+                              content.match(/\"job_group\":\s*\"([^\"]+)\"/i);
+            if (profMatch && profMatch[1] && profMatch[1].toLowerCase() !== 'uncategorized') {
+              filterMap['Profession'] = profMatch[1].replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+            }
           }
+
+          if (!filterMap['Grade']) {
+            const gradeMatch = content.match(/\"grade(?:Labels)?\":\s*\[(.*?)\]/i) ||
+                               content.match(/\"gradeCodes\":\s*\[(.*?)\]/i);
+            if (gradeMatch && gradeMatch[1]) {
+              const grades = gradeMatch[1]
+                .replace(/\"/g, '')
+                .split(',')
+                .map((g) => g.trim().replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()))
+                .filter((g) => g && g.toLowerCase() !== 'uncategorized');
+              if (grades.length > 0) {
+                filterMap['Grade'] = grades.join(', ');
+              }
+            }
+          }
+
+          if (filterMap['Profession'] && filterMap['Grade']) break;
         }
-      });
+      }
     } catch (e) {}
 
     return filterMap;
@@ -768,6 +905,9 @@
 
           startAlarmLoop();
           updateUIState();
+
+          // Ensure combobox buttons have finished hydrating if they are skeletons
+          await waitForComboboxHydration(800);
 
           // Dispatch Telegram alert with active search filters via background service worker
           if (isExtensionValid()) {

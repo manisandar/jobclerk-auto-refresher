@@ -64,6 +64,7 @@ English
 | `storage` | permissions | Stores the user's refresh interval preferences, panel position, and recently seen job signatures locally to prevent false alarms. |
 | `offscreen` | permissions | Plays an audio chime in the background when a new job posting is detected, ensuring reliable alerts without being blocked by browser autoplay policies. |
 | `https://www.jobclerk.com/*`, `https://jobclerk.com/*` | host_permissions / content_scripts | Injects the monitoring panel and reads job vacancy titles exclusively on JobClerk search results pages. |
+| `https://api.telegram.org/*` | host_permissions | Allows the background service worker to dispatch optional push notification alerts to the user's configured Telegram bot when enabled. |
 
 ---
 
