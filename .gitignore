@@ -2,3 +2,9 @@
 *.log
 .vscode/
 .idea/
+
+# Local credentials and secret config files
+src/config/config.json
+src/config/config.js
+.env
+.env.*

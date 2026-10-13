@@ -41,14 +41,30 @@ async function ensureOffscreenDocument() {
 }
 
 /* ==========================================================================
-   Telegram Channel Alert Configuration (Hardcoded)
-   Paste your Bot Token and Channel Username below:
+   Telegram Alert Configuration Loader (from src/config/config.json)
+   Kept separate and excluded from Git for privacy and security.
    ========================================================================== */
-const TELEGRAM_CONFIG = {
-  ENABLED: true, // Set to false to disable Telegram alerts
-  BOT_TOKEN: 'PASTE_YOUR_BOT_TOKEN_HERE', // e.g. '7123456789:AAHk1_xyzABC...'
-  CHAT_ID: '@PASTE_YOUR_CHANNEL_USERNAME_HERE' // e.g. '@my_job_channel' or numeric ID
-};
+async function getTelegramConfig() {
+  try {
+    const configUrl = chrome.runtime.getURL('src/config/config.json');
+    const response = await fetch(configUrl);
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        ENABLED: data.ENABLED !== false,
+        BOT_TOKEN: (data.BOT_TOKEN || data.TELEGRAM_BOT_TOKEN || '').trim(),
+        CHAT_ID: (data.CHAT_ID || data.TELEGRAM_CHAT_ID || '').trim()
+      };
+    }
+  } catch (err) {
+    // config.json not present or unreadable
+  }
+  return {
+    ENABLED: false,
+    BOT_TOKEN: '',
+    CHAT_ID: ''
+  };
+}
 
 /* ==========================================================================
    Telegram API Notification Dispatcher
@@ -110,25 +126,22 @@ async function sendTelegramMessage(token, chatId, text) {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'SEND_TELEGRAM_ALERT') {
-    if (!TELEGRAM_CONFIG.ENABLED) return;
-    if (!TELEGRAM_CONFIG.BOT_TOKEN || TELEGRAM_CONFIG.BOT_TOKEN === 'PASTE_YOUR_BOT_TOKEN_HERE') {
-      console.warn('[JobClerk Refresher] Telegram BOT_TOKEN is not configured in background.js');
-      return;
-    }
-    if (!TELEGRAM_CONFIG.CHAT_ID || TELEGRAM_CONFIG.CHAT_ID === '@PASTE_YOUR_CHANNEL_USERNAME_HERE') {
-      console.warn('[JobClerk Refresher] Telegram CHAT_ID is not configured in background.js');
-      return;
-    }
-    const alertText = formatJobAlertMessage(message.jobs || []);
-    sendTelegramMessage(TELEGRAM_CONFIG.BOT_TOKEN, TELEGRAM_CONFIG.CHAT_ID, alertText)
-      .then((res) => {
-        if (!res.success) {
-          console.error('[JobClerk Refresher] Telegram alert error:', res.error);
-        } else {
-          console.log('[JobClerk Refresher] Telegram alert successfully posted to channel!');
-        }
-      })
-      .catch((err) => console.error('[JobClerk Refresher] Telegram send error:', err));
+    getTelegramConfig().then((config) => {
+      if (!config.ENABLED || !config.BOT_TOKEN || !config.CHAT_ID) {
+        console.warn('[JobClerk Refresher] Telegram alerts disabled or not configured in src/config/config.json');
+        return;
+      }
+      const alertText = formatJobAlertMessage(message.jobs || []);
+      sendTelegramMessage(config.BOT_TOKEN, config.CHAT_ID, alertText)
+        .then((res) => {
+          if (!res.success) {
+            console.error('[JobClerk Refresher] Telegram alert error:', res.error);
+          } else {
+            console.log('[JobClerk Refresher] Telegram alert successfully posted to channel!');
+          }
+        })
+        .catch((err) => console.error('[JobClerk Refresher] Telegram send error:', err));
+    });
   }
 
   if (message.type === 'PLAY_ALARM') {

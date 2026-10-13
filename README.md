@@ -81,21 +81,24 @@ Receive instant job vacancy push notifications on your phone or desktop via Tele
 3. Follow the prompts: choose a display name (e.g., `JobClerk Alerts`) and a username ending in `bot` (e.g., `jobclerk_myalerts_bot`).
 4. `@BotFather` will reply with your **HTTP API Token** (e.g., `7123456789:AAHk...`). Copy this token.
 
-### 2. Configure Telegram in the Code
+### 2. Configure Telegram Credentials (Secure & Excluded from Git)
 
-Open [`src/background/background.js`](file:///Users/htooaungnyan/Documents/Assumption/Projects/Auto%20Refresh%20Chrome%20Extension/src/background/background.js) and paste your credentials into `TELEGRAM_CONFIG`:
+Credentials are kept in a separate file, `src/config/config.json`, which is automatically excluded by `.gitignore` so your secret token will never be exposed or pushed to GitHub:
 
-```javascript
-const TELEGRAM_CONFIG = {
-  ENABLED: true, // Set to false to disable alerts
-  BOT_TOKEN: 'YOUR_BOT_TOKEN_HERE', // From @BotFather
-  CHAT_ID: '@YOUR_CHANNEL_USERNAME'  // Your channel username (e.g. '@my_job_channel')
-};
-```
-
-1. Add your bot into your Telegram Channel as an **Administrator** with permission to **Post Messages**.
-2. Put your channel's public handle (e.g. `@my_job_alerts`) or numeric ID as `CHAT_ID`.
-3. Whenever a new job appears, the extension automatically sends the vacancy details and direct link into your Telegram channel!
+1. Copy [`src/config/config.example.json`](file:///Users/htooaungnyan/Documents/Assumption/Projects/Auto%20Refresh%20Chrome%20Extension/src/config/config.example.json) to `src/config/config.json`:
+   ```bash
+   cp src/config/config.example.json src/config/config.json
+   ```
+2. Edit `src/config/config.json` with your credentials:
+   ```json
+   {
+     "ENABLED": true,
+     "BOT_TOKEN": "YOUR_BOT_TOKEN_FROM_BOTFATHER",
+     "CHAT_ID": "@jobclerkalerts"
+   }
+   ```
+3. Add your bot into your Telegram Channel as an **Administrator** with permission to **Post Messages**.
+4. Whenever a new vacancy appears on JobClerk, the extension automatically posts the job details with a direct link into your Telegram channel!
 
 ---
 
