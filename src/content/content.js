@@ -140,6 +140,80 @@
   }
 
   /* ==========================================================================
+     Active Search Filter Extraction
+     Scrapes active filters from URL parameters and page DOM elements
+     ========================================================================== */
+
+  function getActiveFilters() {
+    const filterMap = {};
+
+    // 1. Scrape from JobClerk DOM combobox buttons
+    try {
+      const comboboxes = document.querySelectorAll('button[role="combobox"]');
+      comboboxes.forEach((btn) => {
+        const label = btn.getAttribute('aria-label') || '';
+        if (label.includes(':')) {
+          const parts = label.split(':').map((s) => s.trim());
+          const cat = parts[0];
+          const val = parts.slice(1).join(':').trim();
+          if (val && val.toLowerCase() !== cat.toLowerCase()) {
+            filterMap[cat] = val;
+          }
+        } else {
+          const span = btn.querySelector('span');
+          const text = span ? span.textContent.trim() : '';
+          const defaultCategories = ['Region', 'Profession', 'Grade', 'Speciality', 'Specialty', 'Employer', 'Market'];
+          for (const cat of defaultCategories) {
+            const matchesId = btn.id && btn.id.toLowerCase().includes(cat.toLowerCase());
+            const matchesLabel = label && label.toLowerCase().includes(cat.toLowerCase());
+            if ((matchesId || matchesLabel) && text && text !== cat) {
+              filterMap[cat] = text;
+            }
+          }
+        }
+      });
+    } catch (e) {}
+
+    // 2. Scrape search keyword and location inputs
+    try {
+      const keywordInput = document.querySelector('input[placeholder*="Job title"], input[aria-label="Search for jobs"], input[enterkeyhint="search"]');
+      if (keywordInput && keywordInput.value && keywordInput.value.trim()) {
+        filterMap['Keyword'] = keywordInput.value.trim();
+      }
+
+      const locationInput = document.querySelector('input[aria-label="Town or postcode"], input[placeholder*="Town or full postcode"]');
+      if (locationInput && locationInput.value && locationInput.value.trim()) {
+        filterMap['Location'] = locationInput.value.trim();
+      }
+    } catch (e) {}
+
+    // 3. Extract & merge URL parameters (captures multiple values e.g. grade=Junior&grade=Senior)
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const ignoredKeys = ['sort', 'page', 'limit', 'view', 'order'];
+      const seenKeys = new Set();
+
+      urlParams.forEach((_, key) => {
+        const lowerKey = key.toLowerCase();
+        if (ignoredKeys.includes(lowerKey)) return;
+        if (seenKeys.has(lowerKey)) return;
+        seenKeys.add(lowerKey);
+
+        const allVals = urlParams.getAll(key).map((v) => v.trim()).filter(Boolean);
+        if (allVals.length > 0) {
+          const prettyKey = key.charAt(0).toUpperCase() + key.slice(1);
+          // If DOM already captured a more readable label, keep it; otherwise use URL param
+          if (!filterMap[prettyKey]) {
+            filterMap[prettyKey] = allVals.join(', ');
+          }
+        }
+      });
+    } catch (e) {}
+
+    return filterMap;
+  }
+
+  /* ==========================================================================
      Audio Alarm Controller (Delegated to MV3 Offscreen Document)
      Exempt from web-page autoplay restrictions across tab reloads.
      ========================================================================== */
@@ -695,11 +769,13 @@
           startAlarmLoop();
           updateUIState();
 
-          // Dispatch Telegram alert via background service worker
+          // Dispatch Telegram alert with active search filters via background service worker
           if (isExtensionValid()) {
+            const activeFilters = getActiveFilters();
             chrome.runtime.sendMessage({
               type: 'SEND_TELEGRAM_ALERT',
-              jobs: newJobsFound
+              jobs: newJobsFound,
+              filters: activeFilters
             }).catch(() => {});
           }
           return;

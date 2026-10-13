@@ -79,9 +79,22 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-function formatJobAlertMessage(jobs) {
+function formatJobAlertMessage(jobs, filters) {
   const count = jobs.length;
   let text = `<b>JobClerk Alert: ${count} New Vacanc${count > 1 ? 'ies' : 'y'} Detected</b>\n\n`;
+
+  // Display active search filters if present
+  if (filters && typeof filters === 'object') {
+    const filterEntries = Object.entries(filters).filter(([k, v]) => v && String(v).trim().length > 0);
+    if (filterEntries.length > 0) {
+      text += `🎯 <b>Active Filters:</b>\n`;
+      filterEntries.forEach(([key, val]) => {
+        text += `• <b>${escapeHtml(key)}:</b> ${escapeHtml(val)}\n`;
+      });
+      text += `\n`;
+    }
+  }
+
   jobs.slice(0, 5).forEach((job, idx) => {
     const jobTitle = escapeHtml(job.title || 'Untitled Vacancy');
     const jobUrl = job.href ? escapeHtml(job.href) : 'https://www.jobclerk.com/jobs';
@@ -131,7 +144,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         console.warn('[JobClerk Refresher] Telegram alerts disabled or not configured in src/config/config.json');
         return;
       }
-      const alertText = formatJobAlertMessage(message.jobs || []);
+      const alertText = formatJobAlertMessage(message.jobs || [], message.filters || {});
       sendTelegramMessage(config.BOT_TOKEN, config.CHAT_ID, alertText)
         .then((res) => {
           if (!res.success) {
