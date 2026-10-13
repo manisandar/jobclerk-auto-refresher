@@ -14,6 +14,7 @@ A high-performance, lightweight Chromium extension designed specifically to moni
 - **Tailored for JobClerk**: Matches strictly to `https://*.jobclerk.com/*` so it never runs on or interferes with unrelated websites.
 - **False-Alarm Proof**: Uses a top-down boundary scan algorithm. When an old job closes and the 2nd job shifts to the top, it recognizes it in cache and suppresses false alerts.
 - **Multi-Job Batch Detection**: Catches multiple jobs arriving in the same refresh interval and records them all in one batch.
+- **Instant Telegram Alerts**: Sends instant notifications directly to personal Telegram chats, private groups, or public channels with direct clickable job links.
 - **Unattended Audio Alerts**: Built with the Manifest V3 Offscreen Audio API (`chrome.offscreen`). Chimes trigger reliably in the background without getting blocked by Chromium's autoplay policy.
 - **Screen-Wide Click-to-Stop**: A single click anywhere on the webpage instantly silences the alarm and pauses the refresh countdown.
 - **Movable & Persistent HUD**: Drag and drop the control box anywhere on your screen. The panel stays pinned to your custom coordinates across all 10-second reloads.
@@ -67,6 +68,35 @@ https://www.jobclerk.com/jobs?market=uk&sort=newest&grade=Junior&profession=Medi
 ### 5. Silencing & Resuming
 - **To Silence & Pause**: Click **anywhere on the webpage**. The audio immediately stops and the countdown pauses.
 - **To Resume**: When you are ready to continue monitoring, click **`Resume`** in the control box.
+
+---
+
+## Telegram Notifications Setup
+
+Receive instant job vacancy push notifications on your phone or desktop via Telegram:
+
+### 1. Create Your Telegram Bot (Takes 1 Minute)
+1. Open Telegram and search for **`@BotFather`** (the official verified Telegram bot builder).
+2. Send `/newbot`.
+3. Follow the prompts: choose a display name (e.g., `JobClerk Alerts`) and a username ending in `bot` (e.g., `jobclerk_myalerts_bot`).
+4. `@BotFather` will reply with your **HTTP API Token** (e.g., `7123456789:AAHk...`). Copy this token.
+
+### 2. Choose How to Receive Alerts
+
+#### Option A: Direct Personal DM (Recommended for Private Use)
+1. In Telegram, search for your newly created bot username and click **Start** (or send `/start`).
+2. Search for **`@userinfobot`** in Telegram and click **Start**. It will immediately display your numeric **`Id`** (e.g., `123456789`).
+3. In the Job Monitor floating panel, expand **Telegram Alerts**:
+   - Paste your **Bot Token**.
+   - Paste your **User ID** as the **Chat ID**.
+   - Click **Test Alert** to verify the connection.
+
+#### Option B: Telegram Channel or Group (Easiest to Share with Others)
+*No need to collect individual account IDs from other people!*
+1. Create a new Telegram Channel or Group (e.g., "JobClerk Alerts").
+2. Add your bot as a member and promote it to **Administrator** with "Post Messages" permission.
+3. Use the channel username (e.g., `@my_job_channel`) or group ID as the **Chat ID** in the extension.
+4. Share the invite link with anyone you want to receive alerts! Anyone who joins gets every alert automatically.
 
 ---
 

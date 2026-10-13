@@ -40,7 +40,81 @@ async function ensureOffscreenDocument() {
   creatingOffscreenPromise = null;
 }
 
+/* ==========================================================================
+   Telegram API Notification Dispatcher
+   ========================================================================== */
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function formatJobAlertMessage(jobs) {
+  const count = jobs.length;
+  let text = `<b>JobClerk Alert: ${count} New Vacanc${count > 1 ? 'ies' : 'y'} Detected</b>\n\n`;
+  jobs.slice(0, 5).forEach((job, idx) => {
+    const jobTitle = escapeHtml(job.title || 'Untitled Vacancy');
+    const jobUrl = job.href ? escapeHtml(job.href) : 'https://www.jobclerk.com/jobs';
+    text += `${idx + 1}. <a href="${jobUrl}"><b>${jobTitle}</b></a>\n`;
+  });
+  if (jobs.length > 5) {
+    text += `\n<i>...and ${jobs.length - 5} more new vacancies.</i>\n`;
+  }
+  const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  text += `\n<i>Detected at ${timeStr} via JobClerk Refresher</i>`;
+  return text;
+}
+
+async function sendTelegramMessage(token, chatId, text) {
+  if (!token || !chatId) {
+    return { success: false, error: 'Bot Token or Chat ID is missing.' };
+  }
+  const cleanToken = token.trim();
+  const cleanChatId = chatId.trim();
+  const url = `https://api.telegram.org/bot${cleanToken}/sendMessage`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: cleanChatId,
+        text: text,
+        parse_mode: 'HTML',
+        disable_web_page_preview: false
+      })
+    });
+    const data = await response.json();
+    if (data.ok) {
+      return { success: true, result: data.result };
+    } else {
+      return { success: false, error: data.description || 'Telegram API request failed.' };
+    }
+  } catch (err) {
+    return { success: false, error: err.message || 'Network request failed.' };
+  }
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'TEST_TELEGRAM') {
+    const testText = '<b>JobClerk Monitor: Test Connection</b>\n\nTelegram notifications are configured successfully! You will receive instant notifications whenever new jobs appear on JobClerk.';
+    sendTelegramMessage(message.token, message.chatId, testText)
+      .then((res) => sendResponse(res))
+      .catch((err) => sendResponse({ success: false, error: err.message }));
+    return true; // Keep channel open for async response
+  }
+
+  if (message.type === 'SEND_TELEGRAM_ALERT') {
+    const alertText = formatJobAlertMessage(message.jobs || []);
+    sendTelegramMessage(message.token, message.chatId, alertText)
+      .then((res) => sendResponse(res))
+      .catch((err) => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+
   if (message.type === 'PLAY_ALARM') {
     ensureOffscreenDocument()
       .then(() => {

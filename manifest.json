@@ -7,6 +7,9 @@
     "storage",
     "offscreen"
   ],
+  "host_permissions": [
+    "https://api.telegram.org/*"
+  ],
   "icons": {
     "16": "assets/icons/icon-16.png",
     "48": "assets/icons/icon-48.png",
