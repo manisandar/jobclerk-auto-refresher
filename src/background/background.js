@@ -79,22 +79,9 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-function formatJobAlertMessage(jobs, filters) {
+function formatJobAlertMessage(jobs) {
   const count = jobs.length;
-  let text = `<b>JobClerk Alert: ${count} New Vacanc${count > 1 ? 'ies' : 'y'} Detected</b>\n\n`;
-
-  // Display active search filters if present
-  if (filters && typeof filters === 'object') {
-    const filterEntries = Object.entries(filters).filter(([k, v]) => v && String(v).trim().length > 0);
-    if (filterEntries.length > 0) {
-      text += `<b>Active Filters:</b>\n`;
-      filterEntries.forEach(([key, val]) => {
-        text += `• <b>${escapeHtml(key)}:</b> ${escapeHtml(val)}\n`;
-      });
-      text += `\n`;
-    }
-  }
-
+  let text = `<b>JobClerk Alert: ${count} New Vacanc${count > 1 ? 'ies' : 'y'} Detected </b>\n\n`;
   jobs.slice(0, 5).forEach((job, idx) => {
     const jobTitle = escapeHtml(job.title || 'Untitled Vacancy');
     const jobUrl = job.href ? escapeHtml(job.href) : 'https://www.jobclerk.com/jobs';
@@ -144,7 +131,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         console.warn('[JobClerk Refresher] Telegram alerts disabled or not configured in src/config/config.json');
         return;
       }
-      const alertText = formatJobAlertMessage(message.jobs || [], message.filters || {});
+      const alertText = formatJobAlertMessage(message.jobs || []);
       sendTelegramMessage(config.BOT_TOKEN, config.CHAT_ID, alertText)
         .then((res) => {
           if (!res.success) {
@@ -164,7 +151,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           chrome.runtime.sendMessage({
             type: 'OFFSCREEN_START_CHIME',
             ringtone: message.ringtone || 'chime'
-          }).catch(() => {});
+          }).catch(() => { });
         }, 80);
       })
       .catch((err) => {
@@ -177,19 +164,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           chrome.runtime.sendMessage({
             type: 'OFFSCREEN_PREVIEW_CHIME',
             ringtone: message.ringtone || 'chime'
-          }).catch(() => {});
+          }).catch(() => { });
         }, 80);
       })
-      .catch(() => {});
+      .catch(() => { });
   } else if (message.type === 'STOP_ALARM') {
-    chrome.runtime.sendMessage({ type: 'OFFSCREEN_STOP_CHIME' }).catch(() => {});
+    chrome.runtime.sendMessage({ type: 'OFFSCREEN_STOP_CHIME' }).catch(() => { });
   }
 });
 
 // Toolbar action icon click handler
 chrome.action.onClicked.addListener(async (tab) => {
   if (tab && tab.url && tab.url.includes('jobclerk.com')) {
-    chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_UI' }).catch(() => {});
+    chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_UI' }).catch(() => { });
   } else {
     chrome.tabs.create({ url: 'https://www.jobclerk.com/jobs?sort=newest' });
   }
